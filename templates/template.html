@@ -1,0 +1,50 @@
+<!-- 在新闻项中添加医学信息显示 -->
+<div class="news-item">
+    <h3><a href="{{ news.main_link }}">{{ news.main_title }}</a></h3>
+    <p>{{ news.main_summary }}</p>
+    
+    <!-- 显示医学信息 -->
+    {% if news.main_indications.has_medical_info %}
+    <div class="medical-info">
+        <h4>医学信息</h4>
+        {% if news.main_indications.diseases %}
+        <p><strong>相关疾病：</strong>
+            {% for disease in news.main_indications.diseases %}
+            <span class="disease-tag">{{ disease.name }}</span>
+            {% endfor %}
+        </p>
+        {% endif %}
+        
+        {% if news.main_indications.symptoms %}
+        <p><strong>症状：</strong>
+            {% for symptom in news.main_indications.symptoms %}
+            <span class="symptom-tag">{{ symptom }}</span>
+            {% endfor %}
+        </p>
+        {% endif %}
+        
+        {% if news.main_indications.severity %}
+        <p><strong>严重程度：</strong>
+            <span class="severity-{{ news.main_indications.severity }}">
+                {{ news.main_indications.severity }}
+            </span>
+        </p>
+        {% endif %}
+        
+        <p><strong>置信度：</strong>{{ "%.2f"|format(news.main_indications.confidence) }}</p>
+    </div>
+    {% endif %}
+    
+    <!-- 相似新闻 -->
+    {% if news.similar_items %}
+    <div class="similar-news">
+        <h4>相关新闻：</h4>
+        {% for item in news.similar_items %}
+        <div>
+            <h5><a href="{{ item.link }}">{{ item.title }}</a></h5>
+            <p>{{ item.summary }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div> 
