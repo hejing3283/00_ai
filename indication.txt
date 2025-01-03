@@ -1,23 +1,93 @@
-Sleep Apnea
-Rare Disease
-Alzheimer’s
-Oncology
-Depression
-Hemophilia
-Obesity
-Diabetes
-Cystic Fibrosis
+# 适应症/疾病列表 - 最后更新: 2024-03-XX
+
+# 癌症
 Breast Cancer
-Non-Small Cell Lung Cancer
+Lung Cancer
+Colorectal Cancer
+Prostate Cancer
+Melanoma
+Leukemia
+Lymphoma
 Multiple Myeloma
+Ovarian Cancer
+Pancreatic Cancer
+Brain Cancer
+Liver Cancer
+Bladder Cancer
+Kidney Cancer
+
+# 自身免疫疾病
 Rheumatoid Arthritis
-Type 2 Diabetes
-Alzheimer's Disease
-Parkinson's Disease
 Multiple Sclerosis
 Psoriasis
 Crohn's Disease
-stomach cancer
-Gastric cancer
-pancreatic cancer
-diabetic retinopathy
+Ulcerative Colitis
+Lupus
+Type 1 Diabetes
+Graves' Disease
+Psoriatic Arthritis
+Ankylosing Spondylitis
+
+# 心血管疾病
+Hypertension
+Atrial Fibrillation
+Heart Failure
+Coronary Artery Disease
+Deep Vein Thrombosis
+Pulmonary Embolism
+Stroke
+Peripheral Artery Disease
+
+# 代谢疾病
+Type 2 Diabetes
+Obesity
+Hyperlipidemia
+Metabolic Syndrome
+Cushing's Syndrome
+Thyroid Disorders
+
+# 神经系统疾病
+Alzheimer's Disease
+Parkinson's Disease
+Epilepsy
+Depression
+Schizophrenia
+Bipolar Disorder
+Anxiety Disorders
+ADHD
+Autism Spectrum Disorders
+
+# 呼吸系统疾病
+Asthma
+COPD
+Cystic Fibrosis
+Pulmonary Fibrosis
+Sleep Apnea
+Pneumonia
+
+# 眼科疾病
+Age-related Macular Degeneration
+Diabetic Retinopathy
+Glaucoma
+Cataracts
+Dry Eye Disease
+
+# 感染性疾病
+HIV/AIDS
+Hepatitis B
+Hepatitis C
+Tuberculosis
+COVID-19
+Influenza
+Pneumonia
+Sepsis
+
+# 罕见疾病
+Cystic Fibrosis
+Duchenne Muscular Dystrophy
+Huntington's Disease
+Spinal Muscular Atrophy
+Gaucher Disease
+Fabry Disease
+Pompe Disease
+Hemophilia

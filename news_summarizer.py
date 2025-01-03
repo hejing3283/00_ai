@@ -25,6 +25,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import DBSCAN
 import numpy as np
 from io import BytesIO
+import pandas as pd
+import yfinance as yf
 
 # Step 1: Web Scraping
 def is_today(date_str, source):
@@ -397,26 +399,45 @@ def summarize_news(news_items, max_length=150):
     return news_items
 
 # Step 3: Data Visualization
-def load_indications():
-    """从文件加载适应症列表"""
+def load_knowledge_base():
+    """加载知识库"""
+    companies = set()
+    drugs = set()
+    indications = set()
+    
+    # 加载公司名称
+    try:
+        with open('company_names.txt', 'r', encoding='utf-8') as f:
+            companies = {line.strip() for line in f if line.strip() and not line.startswith('#')}
+        print(f"从知识库加载了 {len(companies)} 个公司名称")
+    except Exception as e:
+        print(f"加载公司名称时出错: {str(e)}")
+    
+    # 加载药物名称
+    try:
+        with open('drug_names.txt', 'r', encoding='utf-8') as f:
+            drugs = {line.strip() for line in f if line.strip() and not line.startswith('#')}
+        print(f"从知识库加载了 {len(drugs)} 个药物名称")
+    except Exception as e:
+        print(f"加载药物名称时出错: {str(e)}")
+    
+    # 加载适应症
     try:
         with open('indication.txt', 'r', encoding='utf-8') as f:
-            indications = [line.strip() for line in f.readlines() if line.strip()]
-        print(f"从文件加载了 {len(indications)} 个适应症")
-        return indications
+            indications = {line.strip() for line in f if line.strip() and not line.startswith('#')}
+        print(f"从知识库加载了 {len(indications)} 个适应症")
     except Exception as e:
-        print(f"加载适应症文件时出错: {str(e)}")
-        return []
+        print(f"加载适应症时出错: {str(e)}")
+    
+    return companies, drugs, indications
 
 def extract_entities(text):
-    """改进的实体提取函数"""
+    """改进的实体提取函数，使用知识库"""
     if not text or not isinstance(text, str):
         return [], [], []
-        
-    nlp = spacy.load('en_core_web_sm')
     
-    # 加载预定义的适应症
-    known_indications = load_indications()
+    # 加载知识库
+    known_companies, known_drugs, known_indications = load_knowledge_base()
     
     # 将文本转换为小写以进行匹配
     text_lower = text.lower()
@@ -425,51 +446,54 @@ def extract_entities(text):
     drugs = []
     indications = []
     
-    # 1. 提取适应症（只提取单个疾病名称，而不是整句话）
+    # 1. 从知识库匹配公司名称
+    for company in known_companies:
+        if company.lower() in text_lower:
+            companies.append(company)
+    
+    # 2. 从知识库匹配药物名称
+    for drug in known_drugs:
+        if drug.lower() in text_lower:
+            drugs.append(drug)
+    
+    # 3. 从知识库匹配适应症
     for indication in known_indications:
         if indication.lower() in text_lower:
             indications.append(indication)
     
-    # 2. 提取公司名称（改进公司名称识别）
-    doc = nlp(text)
-    for ent in doc.ents:
-        if ent.label_ in ['ORG']:
-            company_name = ent.text.strip()
-            company_keywords = ['therapeutics', 'pharma', 'biotech', 'pharmaceuticals', 
-                              'biosciences', 'medicines', 'medical', 'health',
-                              'technologies', 'labs', 'laboratory']
-            
-            # 检查是否包含公司相关关键词
-            if any(keyword in company_name.lower() for keyword in company_keywords):
-                companies.append(company_name)
-            # 检查是否以Inc.、Ltd.等结尾
-            elif any(company_name.lower().endswith(suffix) for suffix in [' inc', ' ltd', ' llc', ' corp']):
-                companies.append(company_name)
-    
-    # 3. 提取药物名称（扩展药物识别规则）
+    # 4. 使用正则表达式补充识别研发代号
     drug_patterns = [
-        r'\b[A-Za-z]+mab\b',  # 单克隆抗体
-        r'\b[A-Za-z]+nib\b',  # 激酶抑制剂
-        r'\b[A-Za-z]+zib\b',  
-        r'\b[A-Za-z]+mib\b',
-        r'\b[A-Za-z]+tinib\b',
-        r'\b[A-Za-z]+zumab\b',
-        r'\b[A-Za-z]+ximab\b',
-        r'\b[A-Za-z]+umab\b',
-        r'\b[A-Za-z]+-\d+\b'  # 研发代号，如 ABC-123
+        r'\b[A-Z]{2,3}-\d{3,4}\b',  # 例如: AB-123
+        r'\b[A-Z]{2,3}\d{3,4}\b',   # 例如: AB123
     ]
     
     for pattern in drug_patterns:
-        matches = re.finditer(pattern, text, re.IGNORECASE)
+        matches = re.finditer(pattern, text)
         for match in matches:
             drug_name = match.group()
-            if len(drug_name) > 3:  # 避免太短的匹配
+            if drug_name not in drugs:  # 避免重复
                 drugs.append(drug_name)
     
+    # 5. 使用spaCy补充识别未知的公司名称
+    nlp = spacy.load('en_core_web_sm')
+    doc = nlp(text)
+    
+    company_keywords = ['therapeutics', 'pharma', 'biotech', 'pharmaceuticals', 
+                       'biosciences', 'medicines', 'medical', 'health',
+                       'technologies', 'labs', 'laboratory']
+    
+    for ent in doc.ents:
+        if ent.label_ == 'ORG':
+            company_name = ent.text.strip()
+            # 如果公司名称包含关键词但不在知识库中
+            if (any(keyword in company_name.lower() for keyword in company_keywords) and 
+                company_name not in companies):
+                companies.append(company_name)
+    
     # 清理和去重
-    companies = list(set([c.strip() for c in companies if len(c.strip()) > 2]))
-    drugs = list(set([d.strip() for d in drugs if len(d.strip()) > 2]))
-    indications = list(set([i.strip() for i in indications if len(i.strip()) > 2]))
+    companies = list(set(companies))
+    drugs = list(set(drugs))
+    indications = list(set(indications))
     
     # 打印调试信息
     print(f"\n提取的实体:")
@@ -905,7 +929,206 @@ def process_feeds(feeds):
         'clustered_news': clustered_news
     }
 
+def update_company_database():
+    """从多个来源更新公司数据库"""
+    companies = set()
+    
+    # 1. 从生物科技ETF获取公司列表
+    try:
+        # iShares Nasdaq Biotechnology ETF (IBB)
+        ibb = yf.Ticker("IBB")
+        holdings = ibb.holdings
+        if holdings is not None:
+            companies.update(holdings.index)
+        
+        # SPDR S&P Biotech ETF (XBI)
+        xbi = yf.Ticker("XBI")
+        holdings = xbi.holdings
+        if holdings is not None:
+            companies.update(holdings.index)
+            
+        print(f"从ETF获取了 {len(companies)} 家公司")
+    except Exception as e:
+        print(f"从ETF获取公司列表时出错: {str(e)}")
+    
+    # 2. 从FDA获取药品制造商列表
+    try:
+        fda_url = "https://www.fda.gov/drugs/drug-approvals-and-databases/approved-drug-products-therapeutic-equivalence-evaluations-orange-book"
+        response = requests.get(fda_url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # 解析FDA页面获取制造商信息
+            # 具体解析规则需要根据FDA网页结构调整
+            manufacturers = set()  # 存储从FDA页面提取的制造商
+            companies.update(manufacturers)
+    except Exception as e:
+        print(f"从FDA获取制造商列表时出错: {str(e)}")
+    
+    # 3. 保存更新后的公司列表
+    try:
+        # 读取现有的公司列表
+        existing_companies = set()
+        try:
+            with open('company_names.txt', 'r', encoding='utf-8') as f:
+                existing_companies = {line.strip() for line in f if line.strip() and not line.startswith('#')}
+        except FileNotFoundError:
+            pass
+        
+        # 合并新旧公司列表
+        all_companies = existing_companies.union(companies)
+        
+        # 保存更新后的列表
+        with open('company_names.txt', 'w', encoding='utf-8') as f:
+            f.write("# 生物科技公司列表 - 最后更新: " + datetime.now().strftime('%Y-%m-%d') + "\n")
+            for company in sorted(all_companies):
+                f.write(company + "\n")
+        
+        print(f"更新了公司数据库，现有 {len(all_companies)} 家公司")
+    except Exception as e:
+        print(f"保存公司列表时出错: {str(e)}")
+
+def update_drug_database():
+    """从多个来源更新药物数据库"""
+    drugs = set()
+    
+    # 1. 从FDA获取已批准药物列表
+    try:
+        # FDA Drugs@FDA 数据
+        fda_url = "https://www.accessdata.fda.gov/scripts/cder/drugsatfda/index.cfm"
+        response = requests.get(fda_url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # 查找药物名称列表
+            drug_elements = soup.find_all('a', href=lambda x: x and 'appletter' in x)
+            fda_drugs = {elem.text.strip() for elem in drug_elements if elem.text.strip()}
+            drugs.update(fda_drugs)
+            print(f"从FDA获取了 {len(fda_drugs)} 个药物")
+    except Exception as e:
+        print(f"从FDA获取药物列表时出错: {str(e)}")
+    
+    # 2. 从ClinicalTrials.gov获取药物信息
+    try:
+        # 使用ClinicalTrials.gov API
+        ct_url = "https://clinicaltrials.gov/api/query/study_fields"
+        params = {
+            'expr': 'AREA[InterventionType]Drug',
+            'fields': 'InterventionName',
+            'min_rnk': 1,
+            'max_rnk': 1000,
+            'fmt': 'json'
+        }
+        response = requests.get(ct_url, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            if 'StudyFieldsResponse' in data:
+                ct_drugs = set()
+                for study in data['StudyFieldsResponse'].get('StudyFields', []):
+                    interventions = study.get('InterventionName', [])
+                    ct_drugs.update(interventions)
+                drugs.update(ct_drugs)
+                print(f"从ClinicalTrials.gov获取了 {len(ct_drugs)} 个药物")
+    except Exception as e:
+        print(f"从ClinicalTrials.gov获取药物信息时出错: {str(e)}")
+    
+    # 3. 添加常见药物后缀模式的药物
+    try:
+        # 从现有文本中提取可能的药物名称
+        drug_patterns = [
+            r'\b[A-Za-z]+mab\b',  # 单克隆抗体
+            r'\b[A-Za-z]+nib\b',  # 激酶抑制剂
+            r'\b[A-Za-z]+zib\b',
+            r'\b[A-Za-z]+mib\b',
+            r'\b[A-Za-z]+tinib\b',
+            r'\b[A-Za-z]+zumab\b',
+            r'\b[A-Za-z]+ximab\b',
+            r'\b[A-Za-z]+umab\b'
+        ]
+        
+        # 添加一些已知的药物名称
+        known_drugs = {
+            # 单克隆抗体
+            'Humira', 'Keytruda', 'Opdivo', 'Avastin', 'Herceptin', 'Rituxan',
+            'Ocrevus', 'Darzalex', 'Dupixent', 'Stelara', 'Soliris', 'Entyvio',
+            
+            # 小分子药物
+            'Ibrutinib', 'Lenalidomide', 'Apixaban', 'Rivaroxaban', 'Tofacitinib',
+            'Baricitinib', 'Upadacitinib', 'Ruxolitinib',
+            
+            # 其他重要药物
+            'Ozempic', 'Wegovy', 'Mounjaro', 'Jardiance', 'Eliquis', 'Xarelto',
+            'Imbruvica', 'Revlimid', 'Xtandi', 'Skyrizi', 'Rinvoq', 'Vyvanse',
+            
+            # 生物制剂
+            'Lantus', 'Trulicity', 'Eylea', 'Enbrel', 'Prevnar', 'Gardasil'
+        }
+        
+        drugs.update(known_drugs)
+        print(f"添加了 {len(known_drugs)} 个已知药物")
+        
+    except Exception as e:
+        print(f"添加已知药物时出错: {str(e)}")
+    
+    # 4. 保存更新后的药物列表
+    try:
+        # 读取现有的药物列表
+        existing_drugs = set()
+        try:
+            with open('drug_names.txt', 'r', encoding='utf-8') as f:
+                existing_drugs = {line.strip() for line in f if line.strip() and not line.startswith('#')}
+        except FileNotFoundError:
+            pass
+        
+        # 合并新旧药物列表
+        all_drugs = existing_drugs.union(drugs)
+        
+        # 保存更新后的列表
+        with open('drug_names.txt', 'w', encoding='utf-8') as f:
+            f.write("# 药物名称列表 - 最后更新: " + datetime.now().strftime('%Y-%m-%d') + "\n")
+            f.write("# 包括：FDA批准药物、临床试验药物、已知重要药物\n\n")
+            
+            # 按类别组织药物
+            categories = {
+                '单克隆抗体': lambda x: x.lower().endswith(('mab', 'umab', 'zumab', 'ximab')),
+                '激酶抑制剂': lambda x: x.lower().endswith(('nib', 'tinib')),
+                '其他药物': lambda x: True  # 默认类别
+            }
+            
+            for category, condition in categories.items():
+                category_drugs = sorted(drug for drug in all_drugs if condition(drug))
+                if category_drugs:
+                    f.write(f"\n# {category}\n")
+                    for drug in category_drugs:
+                        f.write(drug + "\n")
+        
+        print(f"更新了药物数据库，现有 {len(all_drugs)} 个药物")
+    except Exception as e:
+        print(f"保存药物列表时出错: {str(e)}")
+
+def update_knowledge_base():
+    """更新所有知识库"""
+    print("开始更新知识库...")
+    
+    # 更新公司数据库
+    print("\n更新公司数据库...")
+    update_company_database()
+    
+    # 更新药物数据库
+    print("\n更新药物数据库...")
+    update_drug_database()
+    
+    print("\n知识库更新完成")
+
 def main():
+    # 检查是否需要更新知识库（例如每周更新一次）
+    try:
+        last_update = datetime.fromtimestamp(os.path.getmtime('company_names.txt'))
+        if (datetime.now() - last_update).days >= 7:
+            print("知识库已超过7天未更新，开始更新...")
+            update_knowledge_base()
+    except FileNotFoundError:
+        print("未找到知识库文件，开始创建...")
+        update_knowledge_base()
+    
     # 初始化数据库并处理新闻
     news = process_news()
     

@@ -1,0 +1,65 @@
+# 生物科技公司列表 - 最后更新: 2024-03-XX
+
+# 大型制药公司
+Abbott Laboratories
+AbbVie
+Amgen
+AstraZeneca
+Bayer
+Biogen
+Bristol Myers Squibb
+Eli Lilly
+Gilead Sciences
+GlaxoSmithKline
+Johnson & Johnson
+Merck
+Moderna
+Novartis
+Novo Nordisk
+Pfizer
+Regeneron
+Roche
+Sanofi
+Vertex Pharmaceuticals
+
+# 中型生物科技公司
+Alnylam Pharmaceuticals
+Alkermes
+BioMarin Pharmaceutical
+Bluebird Bio
+Exelixis
+Incyte
+Ionis Pharmaceuticals
+Jazz Pharmaceuticals
+Neurocrine Biosciences
+Sage Therapeutics
+Seagen
+United Therapeutics
+Vir Biotechnology
+
+# 新兴生物科技公司
+10x Genomics
+Adaptive Biotechnologies
+Beam Therapeutics
+CRISPR Therapeutics
+Editas Medicine
+Fate Therapeutics
+Intellia Therapeutics
+Karuna Therapeutics
+Moderna Therapeutics
+Relay Therapeutics
+Revolution Medicines
+Sana Biotechnology
+
+# 专注领域公司
+Acceleron Pharma
+Agios Pharmaceuticals
+Allogene Therapeutics
+Blueprint Medicines
+Denali Therapeutics
+Immunogen
+Insmed
+Kodiak Sciences
+Mirati Therapeutics
+Morphic Therapeutic
+Turning Point Therapeutics 

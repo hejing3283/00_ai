@@ -1,0 +1,74 @@
+# 药物名称列表 - 最后更新: 2024-03-XX
+
+# 单克隆抗体
+Abrilumab
+Adalimumab (Humira)
+Atezolizumab (Tecentriq)
+Avelumab (Bavencio)
+Bevacizumab (Avastin)
+Cemiplimab (Libtayo)
+Daratumumab (Darzalex)
+Durvalumab (Imfinzi)
+Dupilumab (Dupixent)
+Eculizumab (Soliris)
+Ipilimumab (Yervoy)
+Nivolumab (Opdivo)
+Ocrelizumab (Ocrevus)
+Pembrolizumab (Keytruda)
+Rituximab (Rituxan)
+Trastuzumab (Herceptin)
+Ustekinumab (Stelara)
+Vedolizumab (Entyvio)
+
+# 激酶抑制剂
+Abemaciclib (Verzenio)
+Acalabrutinib (Calquence)
+Afatinib (Gilotrif)
+Alectinib (Alecensa)
+Baricitinib (Olumiant)
+Cabozantinib (Cabometyx)
+Dasatinib (Sprycel)
+Erlotinib (Tarceva)
+Ibrutinib (Imbruvica)
+Imatinib (Gleevec)
+Lapatinib (Tykerb)
+Nilotinib (Tasigna)
+Palbociclib (Ibrance)
+Ruxolitinib (Jakafi)
+Sunitinib (Sutent)
+Tofacitinib (Xeljanz)
+
+# 其他重要药物
+# 抗凝血药
+Apixaban (Eliquis)
+Dabigatran (Pradaxa)
+Rivaroxaban (Xarelto)
+
+# 代谢类药物
+Empagliflozin (Jardiance)
+Semaglutide (Ozempic/Wegovy)
+Tirzepatide (Mounjaro)
+Dulaglutide (Trulicity)
+
+# 免疫调节剂
+Lenalidomide (Revlimid)
+Pomalidomide (Pomalyst)
+Thalidomide (Thalomid)
+
+# 眼科药物
+Aflibercept (Eylea)
+Ranibizumab (Lucentis)
+Brolucizumab (Beovu)
+
+# 疫苗
+Gardasil
+Prevnar
+Shingrix
+
+# 其他类别
+Enzalutamide (Xtandi)
+Etanercept (Enbrel)
+Insulin glargine (Lantus)
+Lisdexamfetamine (Vyvanse)
+Risankizumab (Skyrizi)
+Upadacitinib (Rinvoq) 
