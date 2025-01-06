@@ -27,6 +27,7 @@ import numpy as np
 from io import BytesIO
 import pandas as pd
 import yfinance as yf
+import nltk
 
 # Step 1: Web Scraping
 def is_today(date_str, source):
@@ -325,7 +326,8 @@ def process_news():
     # 更新RSS源
     rss_sources = {
         'FierceBiotech': 'https://www.fiercebiotech.com/rss/xml',
-        'BioSpace': 'https://www.biospace.com/all-news.rss'
+        'BioSpace': 'https://www.biospace.com/all-news.rss',
+        'stat': 'https://www.statnews.com/feed/'
     }
     
     all_news = []
@@ -649,12 +651,15 @@ def group_similar_news(news_list, similarity_threshold=0.6):
 
     return grouped_news
 
-def combine_similar_news(all_news, title_similarity_threshold=0.6, summary_similarity_threshold=0.4):
-    """改进的新闻合并函数，更好的去重处理"""
+def combine_similar_news(all_news, title_similarity_threshold=0.6, summary_similarity_threshold=0.5):
+    """改进的新闻合并函数，提供更好的去重和摘要"""
     combined_news = []
     used_indices = set()
 
-    for i, news in enumerate(all_news):
+    # 按日期排序，最新的新闻优先
+    sorted_news = sorted(all_news, key=lambda x: x['date'], reverse=True)
+
+    for i, news in enumerate(sorted_news):
         if i in used_indices:
             continue
 
@@ -666,12 +671,14 @@ def combine_similar_news(all_news, title_similarity_threshold=0.6, summary_simil
         similar_sources.append({
             'source': news['source'],
             'date': news['date'],
-            'link': news['link']
+            'link': news['link'],
+            'title': news['title'],
+            'summary': news['summary']
         })
         used_indices.add(i)
 
         # 查找相似的新闻
-        for j, other_news in enumerate(all_news):
+        for j, other_news in enumerate(sorted_news):
             if j not in used_indices:
                 title_similarity = calculate_title_similarity(main_title, other_news['title'])
                 summary_similarity = calculate_title_similarity(main_summary, other_news['summary'])
@@ -680,21 +687,55 @@ def combine_similar_news(all_news, title_similarity_threshold=0.6, summary_simil
                     similar_sources.append({
                         'source': other_news['source'],
                         'date': other_news['date'],
-                        'link': other_news['link']
+                        'link': other_news['link'],
+                        'title': other_news['title'],
+                        'summary': other_news['summary']
                     })
                     used_indices.add(j)
+
+        # 生成综合摘要
+        if len(similar_sources) > 1:
+            # 使用最长的摘要作为基础
+            all_summaries = [s['summary'] for s in similar_sources]
+            main_summary = max(all_summaries, key=len)
+            
+            # 提取关键信息
+            key_points = set()
+            for source in similar_sources:
+                # 使用NLTK分句
+                sentences = nltk.sent_tokenize(source['summary'])
+                key_points.update(sentences)
+            
+            # 限制关键点数量
+            key_points = list(key_points)[:3]  # 最多保留3个关键点
+            
+            # 组合成最终摘要
+            combined_summary = " ".join(key_points)
+        else:
+            combined_summary = main_summary
 
         # 创建新闻组
         news_group = {
             'title': main_title,
-            'summary': main_summary,
-            'sources': similar_sources
+            'summary': combined_summary,
+            'sources': similar_sources,
+            'source_count': len(similar_sources)
         }
         combined_news.append(news_group)
 
-    # 按来源数量排序
-    combined_news.sort(key=lambda x: len(x['sources']), reverse=True)
-    return combined_news
+    # 按报道源数量和日期排序
+    combined_news.sort(key=lambda x: (x['source_count'], x['sources'][0]['date']), reverse=True)
+    
+    # 只保留重要的新闻（有多个来源或最近的新闻）
+    filtered_news = []
+    recent_date = datetime.now() - timedelta(days=2)
+    
+    for news in combined_news:
+        news_date = datetime.strptime(news['sources'][0]['date'], '%Y-%m-%d')
+        if news['source_count'] > 1 or news_date >= recent_date:
+            filtered_news.append(news)
+    
+    return filtered_news
 
 def generate_html():
     """改进的HTML生成函数"""
@@ -713,53 +754,97 @@ def generate_html():
                     max-width: 1200px;
                     margin: 0 auto;
                     padding: 20px;
+                    line-height: 1.6;
                 }
                 .news-group { 
                     margin-bottom: 30px; 
                     padding: 20px;
                     border: 1px solid #eee;
                     border-radius: 5px;
+                    background: #fff;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }
                 .news-title {
-                    font-size: 1.2em;
-                    color: #333;
-                    margin-bottom: 10px;
+                    font-size: 1.4em;
+                    color: #2c3e50;
+                    margin-bottom: 15px;
+                    font-weight: bold;
                 }
                 .news-summary {
-                    color: #666;
-                    margin-bottom: 15px;
+                    color: #34495e;
+                    margin-bottom: 20px;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-left: 4px solid #3498db;
+                    border-radius: 0 4px 4px 0;
                 }
                 .source-list {
                     display: flex;
                     flex-wrap: wrap;
                     gap: 10px;
+                    margin-top: 15px;
                 }
                 .source-item {
                     background: #f5f5f5;
-                    padding: 5px 10px;
-                    border-radius: 3px;
+                    padding: 8px 15px;
+                    border-radius: 20px;
                     font-size: 0.9em;
+                    border: 1px solid #e0e0e0;
+                    transition: all 0.3s ease;
+                }
+                .source-item:hover {
+                    background: #e9ecef;
+                    transform: translateY(-2px);
+                }
+                .source-item a {
+                    color: #2980b9;
+                    text-decoration: none;
+                }
+                .source-item a:hover {
+                    text-decoration: underline;
                 }
                 .wordcloud-section {
                     display: grid;
                     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
                     gap: 20px;
                     margin: 20px 0;
+                    background: #fff;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }
                 .wordcloud-item {
                     text-align: center;
+                }
+                .wordcloud-item h2 {
+                    color: #2c3e50;
+                    margin-bottom: 15px;
                 }
                 img { 
                     max-width: 100%; 
                     height: auto;
                     border: 1px solid #eee;
-                    border-radius: 5px;
+                    border-radius: 8px;
+                    transition: transform 0.3s ease;
+                }
+                img:hover {
+                    transform: scale(1.02);
+                }
+                .date-range {
+                    color: #666;
+                    font-style: italic;
+                    margin-bottom: 20px;
+                }
+                .source-count {
+                    font-size: 0.9em;
+                    color: #666;
+                    margin-top: 10px;
                 }
             </style>
         </head>
         <body>
             <h1>生物科技新闻摘要</h1>
-            <p>时间范围: {{ date_range }}</p>
+            <p class="date-range">时间范围: {{ date_range }}</p>
             
             <div class="wordcloud-section">
                 <div class="wordcloud-item">
@@ -777,11 +862,12 @@ def generate_html():
             </div>
             
             <div class="news-section">
-                <h2>新闻摘要</h2>
+                <h2>热点新闻</h2>
                 {% for group in combined_news %}
                 <div class="news-group">
                     <div class="news-title">{{ group.title }}</div>
                     <div class="news-summary">{{ group.summary }}</div>
+                    <div class="source-count">{{ group.source_count }} 个相关报道</div>
                     <div class="source-list">
                         {% for source in group.sources %}
                         <div class="source-item">
